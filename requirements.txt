@@ -1,0 +1,12 @@
+ase==3.22.1
+black==22.3.0
+e3nn==0.4.4
+matplotlib
+pre-commit==2.10.*
+pymatgen
+pyyaml
+tqdm
+pytest
+lmdb
+submitit
+wandb

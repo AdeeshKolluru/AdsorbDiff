@@ -1,0 +1,127 @@
+trainer: adsorbdiff.trainers.sde_denoising_trainer.DenoisingTrainer
+
+dataset:
+  - src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs_train_subsplits/train_allE
+  #- src: /home/jovyan/repos/ocp-modeling/data/is2re/all/train
+  #- src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs_train_subsplits/train
+  #- src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs/train_oc20dense_rs_overfit
+    normalize_labels: False
+  - src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs_train_subsplits/val_allE
+
+logger:
+  name: wandb
+  project: ads_COM_diff
+
+
+task:
+  dataset: lmdb
+  train_on_free_atoms: True
+  eval_on_free_atoms: True
+  relaxation_steps: 300
+  relaxation_fmax: 0.01
+  relax_dataset: 
+        #src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs/rand1_I1
+        #src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs_corr/train_oc20dense_rs
+        #src: /home/jovyan/shared-scratch/adeesh/denoising/com_denoising/com-xy_std0.01-10_numstep50x10_lr1.e-4_allcorr/final_struct_lmdb
+        src: /home/jovyan/shared-scratch/adeesh/data/oc20_dense/lmdbs_train_subsplits/val_nonrelaxed
+  relax_opt:
+        maxstep: 0.04
+        memory: 50
+        damping: 1.0
+        alpha: 70.0
+        #traj_dir: /home/jovyan/shared-scratch/adeesh/denoising/com_sde/bysigma_lmdbcorr_std0.1-10_numstep100_sample1
+        traj_dir: /home/jovyan/shared-scratch/adeesh/denoising/overfit_sde_val44/debug
+  primary_metric: loss
+hide_eval_progressbar: False
+
+
+model:
+  name: adsorbdiff.models.equiformer_v2.equiformer_v2_denoising.EquiformerV2S_OC20_DenoisingPos
+
+  use_pbc:                  True
+  regress_forces:           True
+  otf_graph:                True
+  max_neighbors:            20
+  max_radius:               12.0
+  max_num_elements:         90
+
+  num_layers:               8
+  sphere_channels:          128
+  attn_hidden_channels:     64              # [64, 96] This determines the hidden size of message passing. Do not necessarily use 96.
+  num_heads:                8
+  attn_alpha_channels:      64              # Not used when `use_s2_act_attn` is True.
+  attn_value_channels:      16
+  ffn_hidden_channels:      128
+  norm_type:                'layer_norm_sh' # ['rms_norm_sh', 'layer_norm', 'layer_norm_sh']
+
+  lmax_list:                [4]
+  mmax_list:                [2]
+  grid_resolution:          18              # [18, 16, 14, None] For `None`, simply comment this line.
+
+  num_sphere_samples:       128
+
+  edge_channels:            128
+  use_atom_edge_embedding:  True
+  distance_function:        'gaussian'
+  num_distance_basis:       512         # not used
+
+  attn_activation:          'silu'
+  use_s2_act_attn:          False       # [False, True] Switch between attention after S2 activation or the original EquiformerV1 attention.
+  ffn_activation:           'silu'      # ['silu', 'swiglu']
+  use_gate_act:             False       # [False, True] Switch between gate activation and S2 activation
+  use_grid_mlp:             True        # [False, True] If `True`, use projecting to grids and performing MLPs for FFNs.
+
+  alpha_drop:               0.1         # [0.0, 0.1]
+  drop_path_rate:           0.1         # [0.0, 0.05]
+  proj_drop:                0.0
+
+  weight_init:              'uniform'    # ['uniform', 'normal']
+  so3_denoising:            True
+  FOR_denoising:            True 
+  energy_encoding:          scalar
+
+optim:
+  batch_size:                   12        # 6
+  eval_batch_size:              6         # 6
+  grad_accumulation_steps:      1         # gradient accumulation: effective batch size = `grad_accumulation_steps` * `batch_size` * (num of GPUs)
+  load_balancing: atoms
+  num_workers: 4
+  lr_initial:                   4.e-4     # [0.0002, 0.0004], eSCN uses 0.0008 for batch size 96
+
+  optimizer: AdamW
+  optimizer_params:
+    weight_decay: 0.001
+  scheduler: LambdaLR
+  scheduler_params:
+    lambda_type: cosine
+    warmup_factor: 0.2 #0.2
+    warmup_epochs: 4 #0.5
+    lr_min_factor: 0.01         
+
+  max_epochs: 100000
+  force_coefficient: 100
+  energy_coefficient: 2
+  clip_grad_norm: 100
+  ema_decay: 0.999
+  loss_energy: mae
+  loss_force: l2mae
+
+  eval_every: 10000
+  checkpoint_every: 1000 
+
+  # for denoising positions
+  use_denoising_pos:            True
+  denoising_pos_params:         
+    prob:                       1      # probability to switch between denoising positions and S2EF
+    fixed_noise_std:            False
+    num_steps:                  100
+    ads_std_low:                0.1      # lowest standard deviation of Gaussian noise for each xyz component
+    ads_std_high:               10
+    rot_std_low:               0.01
+    rot_std_high:              1.55 #1.55
+    free_std_low:            0.01
+    free_std_high:           0.1
+    sample_low_forces:         True
+    only_langevin:             True
+  denoising_pos_coefficient:    1
+
