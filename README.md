@@ -7,7 +7,8 @@ This is the official code repository for the paper [AdsorbDiff: Adsorbate Placem
 
 If you have any questions, concerns, or feature requests, please feel free to email [me](mailto:kolluru.adeesh@gmail.com).
 
-<img width="800" alt="adsorbdiff_mainfig" src="https://github.com/AdeeshKolluru/AdsorbDiff/assets/43401571/d0441575-3e29-447f-9b28-948623b1d95c">
+<img width="800" alt="adsorbdiff_mainfig" src="https://github.com/AdeeshKolluru/AdsorbDiff/assets/43401571/dfb1d2f4-9e56-4333-ae95-a8062e24af7a">
+
 
 ## Installation 
 
